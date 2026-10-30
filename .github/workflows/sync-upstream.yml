@@ -1,0 +1,86 @@
+name: Sync upstream Arkazzae/VortexLinux and release patched AppImage
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # daily at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/Arkazzae/VortexLinux.git || true
+          git fetch upstream
+
+      - name: Merge upstream master
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git merge --no-edit upstream/master || git rebase --abort && git merge --no-commit upstream/master
+          # Keep our patch list
+          git checkout -- patches/0042-witcher3-use-vortex-fs-rename.patch || true
+
+      - name: Ensure Witcher3 patch in PKGBUILD
+        run: |
+          if ! grep -q "0042-witcher3-use-vortex-fs-rename.patch" PKGBUILD; then
+            # Insert patch after 0041
+            sed -i "/'0041-linux-plugin-folder-prefix.patch'/a \\  '0042-witcher3-use-vortex-fs-rename.patch'" PKGBUILD
+          fi
+
+      - name: Ensure makedepends uses nodejs not nodejs-lts-krypton
+        run: |
+          sed -i "s/'nodejs-lts-krypton'/'nodejs'/" PKGBUILD
+
+      - name: Make patches forwardable
+        run: |
+          sed -i "s/patch -Np1 -i \"\$srcdir\/\$compatibility_patch\"/patch -Np1 --forward -i \"\$srcdir\/\$compatibility_patch\" || true/" PKGBUILD
+
+      - name: Regenerate .SRCINFO
+        run: |
+          sudo apt-get update && sudo apt-get install -y base-devel
+          makepkg --printsrcinfo > .SRCINFO
+
+      - name: Commit changes
+        run: |
+          git add PKGBUILD .SRCINFO patches/0042-witcher3-use-vortex-fs-rename.patch
+          git diff --cached --quiet || git commit -m "chore(sync): upstream merge and ensure Witcher3 fix"
+
+      - name: Get pkgver and push
+        id: version
+        run: |
+          PKGVER=$(grep '^pkgver=' PKGBUILD | head -n1 | cut -d= -f2 | tr -d "'")
+          TAG="v${PKGVER}-witcher3-fix"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          git tag -f "$TAG"
+          git push origin master --force-with-lease
+          git push origin "$TAG" --force
+
+      - name: Trigger AppImage build
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'build-version.yml',
+              ref: '${{ steps.version.outputs.tag }}',
+              inputs: {
+                version: '${{ fromJSON('' + `$(grep ^pkgver= PKGBUILD | cut -d= -f2 | tr -d "'"')`) }}',
+                format: 'appimage',
+                packaging_ref: '${{ steps.version.outputs.tag }}'
+              }
+            });
+
+      - name: Wait for build and upload to release
+        run: |
+          echo "Build triggered. Artifact will be attached by a separate release job."
