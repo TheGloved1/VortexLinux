@@ -1,0 +1,98 @@
+name: Build AppImage for Witcher3 fix tag
+
+on:
+  push:
+    tags:
+      - 'v*-witcher3-fix'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+      options: --user root
+    timeout-minutes: 90
+    steps:
+      - name: Install tools
+        run: pacman -Syu --needed --noconfirm git python
+
+      - name: Prepare workspace
+        run: |
+          git config --global --add safe.directory /__w/VortexLinux/VortexLinux
+          chown -R $(id -u):$(id -g) /__w
+
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Extract version
+        id: vars
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          PKGVER=${TAG#v}
+          PKGVER=${PKGVER%-witcher3-fix}
+          echo "pkgver=$PKGVER" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Select snapshot
+        id: prepare
+        run: |
+          OUT_DIR="$RUNNER_TEMP/vortex-version-build"
+          python3 scripts/build-version.py \
+            --version "${{ steps.vars.outputs.pkgver }}" \
+            --format appimage \
+            --packaging-ref "${{ steps.vars.outputs.tag }}" \
+            --output-dir "$OUT_DIR" \
+            --prepare-only
+          MANIFEST="$OUT_DIR/manifest.json"
+          SOURCE_DIRECTORY=$(python3 -c "import json; print(json.load(open('$MANIFEST'))['source_directory'])")
+          OUTPUT_DIRECTORY=$(python3 -c "import json; print(json.load(open('$MANIFEST'))['output_directory'])")
+          echo "source_directory=$SOURCE_DIRECTORY" >> $GITHUB_OUTPUT
+          echo "output_directory=$OUTPUT_DIRECTORY" >> $GITHUB_OUTPUT
+          echo "manifest=$MANIFEST" >> $GITHUB_OUTPUT
+
+      - name: Install deps
+        run: |
+          SOURCE_DIRECTORY=${{ steps.prepare.outputs.source_directory }}
+          OUTPUT_DIRECTORY=${{ steps.prepare.outputs.output_directory }}
+          mapfile -t deps < <(sed -nE 's/^[[:space:]]+(depends|makedepends)(_x86_64)? = ([^<>=: ]+).*$/\3/p' "$SOURCE_DIRECTORY/.SRCINFO" | sort -u)
+          pacman -S --needed --noconfirm -- "${deps[@]}"
+          useradd --create-home --shell /bin/bash builder
+          chown -R builder:builder "$OUTPUT_DIRECTORY"
+
+      - name: Build Arch package
+        run: |
+          SOURCE_DIRECTORY=${{ steps.prepare.outputs.source_directory }}
+          OUTPUT_DIRECTORY=${{ steps.prepare.outputs.output_directory }}
+          chown builder:builder "$GITHUB_OUTPUT" "$GITHUB_STEP_SUMMARY"
+          runuser --user builder -- env HOME=/home/builder XDG_CACHE_HOME=/home/builder/.cache MAKEFLAGS=-j2 \
+            "$SOURCE_DIRECTORY/scripts/build-arch-package.sh" "$OUTPUT_DIRECTORY/artifacts"
+          PACKAGE_ARCHIVE=$(find "$OUTPUT_DIRECTORY/artifacts" -maxdepth 1 -type f -name "*.pkg.tar.zst" | head -n1)
+          echo "package_archive=$PACKAGE_ARCHIVE" >> $GITHUB_OUTPUT
+
+      - name: Build AppImage
+        id: appimage
+        run: |
+          SOURCE_DIRECTORY=${{ steps.prepare.outputs.source_directory }}
+          OUTPUT_DIRECTORY=${{ steps.prepare.outputs.output_directory }}
+          PACKAGE_ARCHIVE=$(find "$OUTPUT_DIRECTORY/artifacts" -maxdepth 1 -type f -name "*.pkg.tar.zst" | head -n1)
+          runuser --user builder -- env HOME=/home/builder XDG_CACHE_HOME=/home/builder/.cache \
+            "$SOURCE_DIRECTORY/scripts/build-appimage.sh" "$PACKAGE_ARCHIVE" "$OUTPUT_DIRECTORY/artifacts"
+          APPIMAGE=$(find "$OUTPUT_DIRECTORY/artifacts" -maxdepth 1 -type f -name "*.AppImage" | head -n1)
+          echo "appimage=$APPIMAGE" >> $GITHUB_OUTPUT
+
+      - name: Create Release with AppImage
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: Witcher3 fix ${{ steps.vars.outputs.tag }}
+          body: Auto-built AppImage for VortexLinux with Witcher3 mods.settings rename fix.
+          files: ${{ steps.appimage.outputs.appimage }}
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
