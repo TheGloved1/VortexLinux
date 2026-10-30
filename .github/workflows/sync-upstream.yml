@@ -53,7 +53,7 @@ jobs:
           git add PKGBUILD .SRCINFO patches/0042-witcher3-use-vortex-fs-rename.patch
           git diff --cached --quiet || git commit -m "chore(sync): upstream merge and Witcher3 fix"
           PKGVER=$(grep '^pkgver=' PKGBUILD | head -n1 | cut -d= -f2 | tr -d "'")
-          TAG="v${PKGVER}-witcher3-fix"
+          TAG="v${PKGVER}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "pkgver=$PKGVER" >> $GITHUB_OUTPUT
           git tag -f "$TAG"

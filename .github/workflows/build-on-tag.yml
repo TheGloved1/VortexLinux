@@ -3,7 +3,7 @@ name: Build AppImage for Witcher3 fix tag
 on:
   push:
     tags:
-      - 'v*-witcher3-fix'
+      - 'v*'
 
 permissions:
   contents: write
