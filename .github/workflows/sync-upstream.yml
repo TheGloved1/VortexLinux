@@ -44,6 +44,7 @@ jobs:
       - name: Regenerate .SRCINFO
         run: |
           useradd -m builder
+          chown -R builder:builder /__w/VortexLinux/VortexLinux
           sudo -u builder bash -c "makepkg --printsrcinfo" > .SRCINFO
 
       - name: Commit and tag
