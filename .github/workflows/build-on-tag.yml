@@ -46,11 +46,6 @@ jobs:
             --packaging-ref "${{ steps.vars.outputs.tag }}" \
             --output-dir "$OUT_DIR" \
             --prepare-only
-          MANIFEST="$OUT_DIR/manifest.json"
-          SOURCE_DIRECTORY=$(python3 -c "import json; print(json.load(open('$MANIFEST'))['source_directory'])")
-          OUTPUT_DIRECTORY=$(python3 -c "import json; print(json.load(open('$MANIFEST'))['output_directory'])")
-          echo "source_directory=$SOURCE_DIRECTORY" >> $GITHUB_OUTPUT
-          echo "output_directory=$OUTPUT_DIRECTORY" >> $GITHUB_OUTPUT
 
       - name: Install deps
         run: |
