@@ -74,7 +74,9 @@ jobs:
           runuser --user builder -- env HOME=/home/builder XDG_CACHE_HOME=/home/builder/.cache \
             "$SOURCE_DIRECTORY/scripts/build-appimage.sh" "$PACKAGE_ARCHIVE" "$OUTPUT_DIRECTORY/artifacts"
           APPIMAGE=$(find "$OUTPUT_DIRECTORY/artifacts" -maxdepth 1 -type f -name "*.AppImage" | head -n1)
+          ZSYNC="${APPIMAGE}.zsync"
           echo "appimage=$APPIMAGE" >> $GITHUB_OUTPUT
+          echo "zsync=$ZSYNC" >> $GITHUB_OUTPUT
 
       - name: Delete existing release
         run: gh release delete "${{ steps.vars.outputs.tag }}" --yes || true
@@ -85,6 +87,8 @@ jobs:
           tag_name: ${{ steps.vars.outputs.tag }}
           name: Witcher3 fix ${{ steps.vars.outputs.tag }}
           body: Auto-built AppImage for VortexLinux with Witcher3 mods.settings rename fix.
-          files: ${{ steps.appimage.outputs.appimage }}
+          files: |
+            ${{ steps.appimage.outputs.appimage }}
+            ${{ steps.appimage.outputs.zsync }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
