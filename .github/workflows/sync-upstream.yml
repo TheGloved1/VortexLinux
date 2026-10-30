@@ -58,4 +58,5 @@ jobs:
           echo "pkgver=$PKGVER" >> $GITHUB_OUTPUT
           git tag -f "$TAG"
           git push origin master --force-with-lease
-          git push origin "$TAG" --force
+          git push origin :refs/tags/$TAG || true
+          git push origin "$TAG"
