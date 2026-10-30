@@ -42,7 +42,9 @@ jobs:
           sed -i "s/patch -Np1 -i \"\$srcdir\/\$compatibility_patch\"/patch -Np1 --forward -i \"\$srcdir\/\$compatibility_patch\" || true/" PKGBUILD
 
       - name: Regenerate .SRCINFO
-        run: makepkg --printsrcinfo > .SRCINFO
+        run: |
+          useradd -m builder
+          sudo -u builder bash -c "makepkg --printsrcinfo" > .SRCINFO
 
       - name: Commit and tag
         id: version
