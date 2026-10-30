@@ -70,6 +70,7 @@ jobs:
           SOURCE_DIRECTORY=${{ steps.prepare.outputs.source_directory }}
           OUTPUT_DIRECTORY=${{ steps.prepare.outputs.output_directory }}
           PACKAGE_ARCHIVE=$(find "$OUTPUT_DIRECTORY/artifacts" -maxdepth 1 -type f -name "*.pkg.tar.zst" | head -n1)
+          chown builder:builder "$GITHUB_OUTPUT" "$GITHUB_STEP_SUMMARY"
           runuser --user builder -- env HOME=/home/builder XDG_CACHE_HOME=/home/builder/.cache \
             "$SOURCE_DIRECTORY/scripts/build-appimage.sh" "$PACKAGE_ARCHIVE" "$OUTPUT_DIRECTORY/artifacts"
           APPIMAGE=$(find "$OUTPUT_DIRECTORY/artifacts" -maxdepth 1 -type f -name "*.AppImage" | head -n1)
