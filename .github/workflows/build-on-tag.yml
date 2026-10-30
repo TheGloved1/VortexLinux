@@ -85,7 +85,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.vars.outputs.tag }}
-          name: Witcher3 fix ${{ steps.vars.outputs.tag }}
+          name: ${{ steps.vars.outputs.pkgver }}
           body: Auto-built AppImage for VortexLinux with Witcher3 mods.settings rename fix.
           files: |
             ${{ steps.appimage.outputs.appimage }}
