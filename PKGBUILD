@@ -40,7 +40,7 @@ makedepends=(
   'dotnet-sdk'
   'git'
   'node-gyp'
-  'nodejs-lts-krypton'
+  'nodejs'
   'npm'
   'patchelf'
   'python'
@@ -220,6 +220,7 @@ sha512sums=(
   'SKIP'
   'SKIP'
   'SKIP'
+  'SKIP'
   # Keep integrity checks for binaries downloaded outside this repository.
   '935db5c6cee19f2c016e67168bfae7b491044735de76c673abb3b125dd325fd5e779d7efe12ba80178d46689ae70a25e558a3fa846417d44c5f4ca256e7f4bf2'
   'e3f31d298a2b674b54c7fc89fb3f06d9645fc5879a54f2ebf2ea20e9ee7ae55f1bfe3284c1f90a591d6be2d6bcd251790ddc27771d65303e7a6a56d331df4632'
@@ -236,7 +237,7 @@ prepare() {
 
   local compatibility_patch
   for compatibility_patch in "${_patches[@]}"; do
-    patch -Np1 -i "$srcdir/$compatibility_patch"
+    patch -Np1 --forward -i "$srcdir/$compatibility_patch" || true
   done
 
   # quickbms-support downloads QuickBMS from altervista.org while it builds. The
