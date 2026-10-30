@@ -75,6 +75,9 @@ jobs:
           APPIMAGE=$(find "$OUTPUT_DIRECTORY/artifacts" -maxdepth 1 -type f -name "*.AppImage" | head -n1)
           echo "appimage=$APPIMAGE" >> $GITHUB_OUTPUT
 
+      - name: Delete existing release
+        run: gh release delete "${{ steps.vars.outputs.tag }}" --yes || true
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
