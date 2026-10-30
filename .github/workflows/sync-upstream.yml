@@ -61,20 +61,7 @@ jobs:
           git push origin "$TAG" --force
 
       - name: Dispatch AppImage build
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'build-version.yml',
-              ref: '${{ steps.version.outputs.tag }}',
-              inputs: {
-                version: '${{ steps.version.outputs.pkgver }}',
-                format: 'appimage',
-                packaging_ref: '${{ steps.version.outputs.tag }}'
-              }
-            });
+        run: echo "Skipping dispatch; build can be triggered manually"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
