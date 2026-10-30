@@ -1,0 +1,17 @@
+--- a/extensions/games/game-witcher3/src/iniParser.ts	2026-10-29 22:42:12.022441846 -0500
++++ b/extensions/games/game-witcher3/src/iniParser.ts	2026-10-29 22:43:43.128609349 -0500
+@@ -1,5 +1,4 @@
+ /* eslint-disable */
+-import { rename } from "node:fs/promises";
+ import path from "path";
+ 
+ import { fs, selectors, types, util } from "@nexusmods/vortex-api";
+@@ -197,7 +196,7 @@
+         };
+       }
+       await parser.write(tempPath, ini);
+-      await rename(tempPath, filePath);
++      await fs.renameAsync(tempPath, filePath);
+       return Promise.resolve();
+     } catch (err) {
+       return err.path !== undefined && ["EPERM", "EBUSY"].includes(err.code)

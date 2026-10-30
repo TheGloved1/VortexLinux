@@ -142,6 +142,7 @@ _patches=(
   '0039-linux-lutris-store.patch'
   '0040-linux-bottles-store.patch'
   '0041-linux-plugin-folder-prefix.patch'
+  '0042-witcher3-use-vortex-fs-rename.patch'
 )
 
 source=(
