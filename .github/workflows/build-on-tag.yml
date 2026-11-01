@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build, e.g. v2.9.1'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -30,7 +36,7 @@ jobs:
       - name: Extract version
         id: vars
         run: |
-          TAG=${GITHUB_REF_NAME}
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
           PKGVER=${TAG#v}
           PKGVER=${PKGVER%-witcher3-fix}
           echo "pkgver=$PKGVER" >> $GITHUB_OUTPUT
