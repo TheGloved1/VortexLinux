@@ -52,11 +52,17 @@ jobs:
         id: version
         run: |
           git add PKGBUILD .SRCINFO patches/0042-witcher3-use-vortex-fs-rename.patch
-          git diff --cached --quiet || git commit -m "chore(sync): upstream merge and Witcher3 fix"
+          if git diff --cached --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore(sync): upstream merge and Witcher3 fix"
           PKGVER=$(grep '^pkgver=' PKGBUILD | head -n1 | cut -d= -f2 | tr -d "'")
           TAG="v${PKGVER}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "pkgver=$PKGVER" >> $GITHUB_OUTPUT
+          echo "changed=true" >> $GITHUB_OUTPUT
           git tag -f "$TAG"
           if [ -n "${{ secrets.PAT_TOKEN }}" ]; then
             git remote set-url origin https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }}.git
@@ -66,6 +72,7 @@ jobs:
           git push origin "$TAG"
 
       - name: Trigger build workflow
+        if: steps.version.outputs.changed == 'true'
         run: |
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
