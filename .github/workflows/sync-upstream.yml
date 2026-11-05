@@ -52,12 +52,14 @@ jobs:
         id: version
         run: |
           git add PKGBUILD .SRCINFO patches/0042-witcher3-use-vortex-fs-rename.patch
-          if git diff --cached --quiet; then
+          if git diff origin/master --quiet && git diff --cached --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
             echo "No changes to commit."
             exit 0
           fi
-          git commit -m "chore(sync): upstream merge and Witcher3 fix"
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(sync): upstream merge and Witcher3 fix"
+          fi
           PKGVER=$(grep '^pkgver=' PKGBUILD | head -n1 | cut -d= -f2 | tr -d "'")
           TAG="v${PKGVER}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
